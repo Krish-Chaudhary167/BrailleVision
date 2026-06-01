@@ -62,6 +62,23 @@ def load_model():
         print("[!] ultralytics not installed. Running in DEMO mode.")
 
 load_model()
+# ─────────────────────────────────────────────
+# PREPROCESSING
+# ─────────────────────────────────────────────
+
+def preprocess_frame(frame_bgr):
+    gray = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2GRAY)
+    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8,8))
+    clahe_out = clahe.apply(gray)
+    blurred = cv2.GaussianBlur(clahe_out, (5,5), 0)
+    thresh = cv2.adaptiveThreshold(
+        blurred, 255,
+        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+        cv2.THRESH_BINARY,
+        11, 2
+    )
+    return cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
+
 
 # ─────────────────────────────────────────────
 # INFERENCE HELPERS
@@ -75,6 +92,7 @@ def run_inference(frame_bgr):
     """
     if model is None:
         return _demo_detections(frame_bgr)
+    frame_bgr = preprocess_frame(frame_bgr)
 
     results = model(frame_bgr, conf=CONFIDENCE_THRESHOLD, verbose=False)[0]
     detections = []
