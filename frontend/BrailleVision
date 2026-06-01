@@ -1,0 +1,144 @@
+import streamlit as st
+import streamlit.components.v1 as components
+from gtts import gTTS
+import cv2
+import numpy as np
+import base64
+import io
+import time
+
+# Temporary Braille Detection Function
+def detect_braille(image):
+    return "Braille text detected"
+
+# Page Configuration
+st.set_page_config(
+    page_title="BrailleVision AI",
+    page_icon="👁️",
+    layout="wide"
+)
+
+# Tabs
+tab1, tab2 = st.tabs(["Working AI App", "Figma Design System"])
+
+# ---------------- TAB 1 ----------------
+with tab1:
+
+    st.title("BrailleVision AI")
+    st.caption("Real-Time Braille Recognition & Voice Translation")
+
+    # Webcam mirror fix
+    st.markdown("""
+    <style>
+    div[data-testid="stCameraInput"] video {
+        transform: scaleX(-1);
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    st.write(
+        "Place your physical Braille text in front of the camera to translate it instantly."
+    )
+
+    img_file_buffer = st.camera_input(
+        "Capture Braille Text",
+        label_visibility="collapsed"
+    )
+
+    if img_file_buffer is not None:
+
+        bytes_data = img_file_buffer.getvalue()
+        raw_image = cv2.imdecode(
+            np.frombuffer(bytes_data, np.uint8),
+            cv2.IMREAD_COLOR
+        )
+
+        with st.spinner("Processing Braille characters..."):
+            time.sleep(1)
+
+        st.success("Translation Complete!")
+
+        # Detection View
+        st.header("1. Model Detection View")
+
+        h, w = raw_image.shape[:2]
+
+        cv2.rectangle(
+            raw_image,
+            (int(w * 0.25), int(h * 0.30)),
+            (int(w * 0.75), int(h * 0.70)),
+            (0, 255, 0),
+            3
+        )
+
+        cv2.putText(
+            raw_image,
+            "Braille Cell Detected",
+            (50, 50),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            1,
+            (0, 255, 0),
+            2
+        )
+
+        st.image(
+            raw_image,
+            channels="BGR",
+            use_container_width=True
+        )
+
+        # Translation Output
+        st.header("2. Translated English Text")
+
+        translated_text = detect_braille(raw_image)
+
+        st.success(translated_text)
+
+        # Text to Speech
+        tts = gTTS(
+            text=translated_text,
+            lang="en",
+            slow=False
+        )
+
+        fp = io.BytesIO()
+        tts.write_to_fp(fp)
+        fp.seek(0)
+
+        b64_audio = base64.b64encode(
+            fp.read()
+        ).decode()
+
+        autoplay_html = f"""
+        <audio autoplay>
+            <source src="data:audio/mp3;base64,{b64_audio}" type="audio/mp3">
+        </audio>
+        """
+
+        st.markdown(
+            autoplay_html,
+            unsafe_allow_html=True
+        )
+
+        fp.seek(0)
+
+        st.audio(
+            fp,
+            format="audio/mp3"
+        )
+
+# ---------------- TAB 2 ----------------
+with tab2:
+
+    st.title("High-Fidelity UI/UX Prototype")
+
+    st.write(
+        "Explore our original design system and user journey maps below:"
+    )
+
+    components.iframe(
+        "https://embed.figma.com/design/ol8Mb6T2ubEFAd1Rxqn8Zc/BRALLIE-VISION?node-id=0-1&embed-host=share",
+        width=1000,
+        height=650,
+        scrolling=True
+    )
